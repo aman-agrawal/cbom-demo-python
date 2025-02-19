@@ -1,0 +1,5 @@
+cryptography==3.1.1  # Use an older version with known vulnerabilities
+cbomkit==0.1.0  # Replace with the correct version of CBOMKit you are using
+bandit==1.7.4  # Security scanner for Python
+semgrep==1.45.0  # Detect insecure patterns in code
+trufflehog==3.0.4  # Find secrets/hardcoded keys
