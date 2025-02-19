@@ -6,21 +6,17 @@ import os
 # Generate an RSA Key Pair
 def generate_rsa_keys():
     private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048
+        public_exponent=3,  # ⚠️ Weak exponent (vulnerable to attacks)
+        key_size=1024  # ⚠️ Weak key size (easily breakable)
     )
     public_key = private_key.public_key()
     return private_key, public_key
 
-# Encrypt a message using RSA
+# Encrypt a message using RSA (Insecure)
 def rsa_encrypt(public_key, message):
     encrypted = public_key.encrypt(
         message.encode(),
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None
-        )
+        padding.PKCS1v15()  # ⚠️ Insecure padding, vulnerable to padding oracle attacks
     )
     return encrypted
 
@@ -28,23 +24,16 @@ def rsa_encrypt(public_key, message):
 def rsa_decrypt(private_key, encrypted_message):
     decrypted = private_key.decrypt(
         encrypted_message,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None
-        )
+        padding.PKCS1v15()  # ⚠️ Insecure padding
     )
     return decrypted.decode()
 
-# Sign a message using RSA
+# Sign a message using RSA (Insecure)
 def sign_message(private_key, message):
     signature = private_key.sign(
         message.encode(),
-        padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=padding.PSS.MAX_LENGTH
-        ),
-        hashes.SHA256()
+        padding.PKCS1v15(),  # ⚠️ Insecure padding
+        hashes.SHA1()  # ⚠️ Deprecated hash function
     )
     return signature
 
@@ -54,39 +43,33 @@ def verify_signature(public_key, message, signature):
         public_key.verify(
             signature,
             message.encode(),
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256()
+            padding.PKCS1v15(),  # ⚠️ Insecure padding
+            hashes.SHA1()  # ⚠️ Deprecated hash function
         )
         return True
     except:
         return False
 
-# AES Encryption
+# AES Encryption using ECB mode (Insecure)
 def aes_encrypt(key, plaintext):
-    iv = os.urandom(16)  # Generate a random IV
-    cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
+    cipher = Cipher(algorithms.AES(key), modes.ECB())  # ⚠️ ECB mode is insecure
     encryptor = cipher.encryptor()
-    padded_plaintext = plaintext + ' ' * (16 - len(plaintext) % 16)  # Padding
+    padded_plaintext = plaintext + ' ' * (16 - len(plaintext) % 16)  # ⚠️ Manual padding
     ciphertext = encryptor.update(padded_plaintext.encode()) + encryptor.finalize()
-    return iv + ciphertext  # Store IV with ciphertext
+    return ciphertext
 
 # AES Decryption
 def aes_decrypt(key, encrypted_message):
-    iv = encrypted_message[:16]
-    ciphertext = encrypted_message[16:]
-    cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
+    cipher = Cipher(algorithms.AES(key), modes.ECB())  # ⚠️ ECB mode is insecure
     decryptor = cipher.decryptor()
-    decrypted = decryptor.update(ciphertext) + decryptor.finalize()
-    return decrypted.decode().strip()  # Remove padding
+    decrypted = decryptor.update(encrypted_message) + decryptor.finalize()
+    return decrypted.decode().strip()  # ⚠️ May still contain padding issues
 
 # Example Usage
 if __name__ == "__main__":
     private_key, public_key = generate_rsa_keys()
 
-    message = "Hello, Cryptography!"
+    message = "Hello, Insecure Crypto!"
 
     # RSA Encryption/Decryption
     encrypted_msg = rsa_encrypt(public_key, message)
@@ -96,8 +79,8 @@ if __name__ == "__main__":
     signature = sign_message(private_key, message)
     is_valid = verify_signature(public_key, message, signature)
 
-    # AES Encryption/Decryption
-    aes_key = os.urandom(32)  # 256-bit key
+    # AES Encryption/Decryption (Hardcoded Key)
+    aes_key = b"1234567890abcdef"  # ⚠️ Hardcoded key (bad practice)
     aes_encrypted = aes_encrypt(aes_key, message)
     aes_decrypted = aes_decrypt(aes_key, aes_encrypted)
 
